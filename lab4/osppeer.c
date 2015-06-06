@@ -507,51 +507,22 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 	assert(tracker_task->type == TASK_TRACKER);
 
 	message("* Finding peers for '%s'\n", filename);
-	//Design Problem
-	char* tmp;
-	if(encrypt)
-	{
-		message("* Decrypted File Name: %s\n",filename);
-		tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
-		strncpy(tmp,filename,FILENAMESIZ-1);
-		osp2p_decrypt_encrypt_filename(tmp);
-		//strncpy(filename,tmp,FILENAMESIZ-1);
-		//filename[FILENAMESIZ-1]='\0';
-		message("* Encrypted File Name: %s\n",filename);
-		osp2p_writef(tracker_task->peer_fd, "WANT %s\n", tmp);
-		messagepos = read_tracker_response(tracker_task);
-		if (tracker_task->buf[messagepos] != '2') {
-			error("* Tracker error message while requesting '%s':\n%s",
-			      tmp, &tracker_task->buf[messagepos]);
-			goto exit;
-		}
 
-		if (!(t = task_new(TASK_DOWNLOAD))) {
-			error("* Error while allocating task");
-			goto exit;
-		}
-		strncpy(t->filename,tmp,FILENAMESIZ-1);
-		t->filename[FILENAMESIZ-1]='\0';
+	osp2p_writef(tracker_task->peer_fd, "WANT %s\n", filename);
+	messagepos = read_tracker_response(tracker_task);
+	if (tracker_task->buf[messagepos] != '2') {
+		error("* Tracker error message while requesting '%s':\n%s",
+		      filename, &tracker_task->buf[messagepos]);
+		goto exit;
 	}
-	else
-	{
-		osp2p_writef(tracker_task->peer_fd, "WANT %s\n", filename);
-		messagepos = read_tracker_response(tracker_task);
-		if (tracker_task->buf[messagepos] != '2') {
-			error("* Tracker error message while requesting '%s':\n%s",
-			      filename, &tracker_task->buf[messagepos]);
-			goto exit;
-		}
 
-		if (!(t = task_new(TASK_DOWNLOAD))) {
-			error("* Error while allocating task");
-			goto exit;
-		}
-
-	
-		strncpy(t->filename,filename,FILENAMESIZ-1);
-		t->filename[FILENAMESIZ-1]='\0';
+	if (!(t = task_new(TASK_DOWNLOAD))) {
+		error("* Error while allocating task");
+		goto exit;
 	}
+
+	strncpy(t->filename,filename,FILENAMESIZ-1);
+	t->filename[FILENAMESIZ-1]='\0';
 
 	
 	// add peers
@@ -618,6 +589,16 @@ static void task_download(task_t *t, task_t *tracker_task)
 	else
 	{
 		osp2p_writef(t->peer_fd, "GET %s OSP2P\n", t->filename);
+	}
+	//Design Problem
+	//char* tmp;
+	if(encrypt)
+	{
+		message("* Encrypted File Name: %s\n",t->filename);
+		//tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
+		//strncpy(tmp,t->filename,FILENAMESIZ-1);
+		osp2p_decrypt_encrypt_filename(t->filename);
+		message("* Decrypted File Name: %s\n",t->filename);
 	}
 	// Open disk file for the result.
 	// If the filename already exists, save the file in a name like
