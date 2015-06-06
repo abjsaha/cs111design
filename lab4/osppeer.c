@@ -79,7 +79,7 @@ typedef struct task {
 				// at a time, if a peer misbehaves.
 	//char* pass=(char*)malloc(sizeof(char)*MAXPASSSIZ);
 	//char pass[MAXPASSSIZ];
-	int flgEncrypt;
+	//int flgEncrypt;
 } task_t;
 
 
@@ -93,7 +93,7 @@ static task_t *task_new(tasktype_t type)
 		errno = ENOMEM;
 		return NULL;
 	}
-	t->flgEncrypt=0;
+	//t->flgEncrypt=0;
 	t->type = type;
 	t->peer_fd = t->disk_fd = -1;
 	t->head = t->tail = 0;
@@ -659,7 +659,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 		return;
 	}
 	//Design Problem
-	if(encrypt&&t->flgEncrypt)
+	if(encrypt)
 	{
 	   	if(!osp2p_decryption(t->filename))
 		{
@@ -673,7 +673,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 		}
 	}
 	//Design Problem
-	if(encrypt&&t->flgEncrypt)
+	if(encrypt)
 	{
 		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
 		strncpy(tmp,t->filename,FILENAMESIZ-1);
@@ -814,7 +814,7 @@ static void task_upload(task_t *t)
 		else
 		{
 			message("* Encryption success!\n");
-			t->flgEncrypt=1;
+			//t->flgEncrypt=1;
 		}
 	}
 	//Exercise 3: Set upload to different file than intended this file can be a virus
