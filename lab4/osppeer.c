@@ -516,10 +516,10 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 	assert(tracker_task->type == TASK_TRACKER);
 
 	message("* Finding peers for '%s'\n", filename);
+	char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
 	if(encrypt)
 	{
-		message("* Decrypted Filename: %s\n", filename);
-		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
+		message("* Decrypted Filename: %s\n", filename)
 		strcpy(tmp,filename);
 		osp2p_decrypt_encrypt_filename(tmp);
 		//strcpy(t->filename,tmp);
@@ -539,8 +539,16 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 		error("* Error while allocating task");
 		goto exit;
 	}
-	strncpy(t->filename,filename,FILENAMESIZ-1);
-	t->filename[FILENAMESIZ-1]='\0';
+	if(encrypt)
+	{	
+		strncpy(t->filename,tmp,FILENAMESIZ-1);
+		t->filename[FILENAMESIZ-1]='\0';
+	}
+	else
+	{
+		strncpy(t->filename,filename,FILENAMESIZ-1);
+		t->filename[FILENAMESIZ-1]='\0';
+	}
 	// add peers
 	s1 = tracker_task->buf;
 	while ((s2 = memchr(s1, '\n', (tracker_task->buf + messagepos) - s1))) {
