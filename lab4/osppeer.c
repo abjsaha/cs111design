@@ -763,7 +763,7 @@ static void task_upload(task_t *t)
 		error("* Peer cannot serve files outside the current directory");
 		goto exit;
 	}
-	//Design Problem
+	/*//Design Problem
 	if(encrypt)
 	{
 		if(!osp2p_encryption_decryption(t->filename))
@@ -776,7 +776,7 @@ static void task_upload(task_t *t)
 			message("* Encryption success!\n");
 			//t->flgEncrypt=1;
 		}
-	}
+	}*/
 	//Exercise 3: Set upload to different file than intended this file can be a virus
 	if(evil_mode == 1)
 		t->disk_fd = open("../virus", O_RDONLY);
