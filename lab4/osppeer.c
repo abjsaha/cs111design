@@ -516,8 +516,18 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 	assert(tracker_task->type == TASK_TRACKER);
 
 	message("* Finding peers for '%s'\n", filename);
-
-	osp2p_writef(tracker_task->peer_fd, "WANT %s\n", filename);
+	if(encrypt)
+	{
+		message("* Decrypted Filename: %s\n", filename);
+		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
+		strcpy(tmp,filename);
+		osp2p_decrypt_encrypt_filename(tmp);
+		//strcpy(t->filename,tmp);
+		message("* Encrypted Filename: %s\n",tmp);
+		osp2p_writef(tracker_task->peer_fd, "WANT %s\n", tmp);
+	}
+	else
+		osp2p_writef(tracker_task->peer_fd, "WANT %s\n", filename);
 	messagepos = read_tracker_response(tracker_task);
 	if (tracker_task->buf[messagepos] != '2') {
 		error("* Tracker error message while requesting '%s':\n%s",
