@@ -519,7 +519,7 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 	char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
 	if(encrypt)
 	{
-		message("* Decrypted Filename: %s\n", filename)
+		message("* Decrypted Filename: %s\n", filename);
 		strcpy(tmp,filename);
 		osp2p_decrypt_encrypt_filename(tmp);
 		//strcpy(t->filename,tmp);
