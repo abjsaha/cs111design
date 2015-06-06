@@ -617,11 +617,11 @@ static void task_download(task_t *t, task_t *tracker_task)
 	//Design Problem
 	if(encrypt)
 	{
-		message("* Encrypted File Name: %s",t->filename);
+		message("* Encrypted File Name: %s\n",t->filename);
 		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
 		strncpy(tmp,t->filename,FILENAMESIZ-1);
 		osp2p_decrypt_encrypt_filename(t->filename);
-		message("* Decrypted File Name: %s",t->filename);
+		message("* Decrypted File Name: %s\n",t->filename);
 	}
 	// Open disk file for the result.
 	// If the filename already exists, save the file in a name like
@@ -681,7 +681,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 	if (t->total_written > 0) {
 		message("* Downloaded '%s' was %lu bytes long\n",
 			t->disk_filename, (unsigned long) t->total_written);
-		//Design Problem
+		/*//Design Problem
 		if(encrypt)
 		{
 	  	 	if(!osp2p_encryption_decryption(t->filename))
@@ -693,7 +693,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 			{
 				message("* Decryption of file success!\n");
 			}
-		}
+		}*/
 		// Inform the tracker that we now have the file,
 		// and can serve it to others!  (But ignore tracker errors.)
 		if (strcmp(t->filename, t->disk_filename) == 0) {
@@ -811,19 +811,14 @@ static void task_upload(task_t *t)
 	if (t->disk_fd == -1) {
 		error("* Cannot open file %s", t->filename);
 		goto exit;
-	/*//Design Problem
+	//Design Problem
+	char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
 	if(encrypt)
 	{
-		message("* Decrypted Filename: %s\n", t->filename);
-		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
 		strcpy(tmp,t->filename);
 		osp2p_decrypt_encrypt_filename(tmp);
-		strcpy(t->filename,tmp);
-		message("* Encrypted Filename: %s\n",t->filename);
 	}
-	else*/
-		message("* Transferring file %s\n", t->filename);
-	}
+	message("* Transferring file %s\n", t->filename);
 
 	//Exercise 3: Causing disk overrun by infinitely writting and eventually overflowing the buffer.
 	if (evil_mode == 2)
@@ -850,7 +845,7 @@ static void task_upload(task_t *t)
 	}
 
 	message("* Upload of %s complete\n", t->filename);
-
+	rename(t->filename,tmp);
     exit:
 	task_free(t);
 }
