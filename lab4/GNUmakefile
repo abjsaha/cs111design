@@ -52,7 +52,7 @@ run-e: osppeer
 	@echo + mkdir test
 	@mkdir test
 	@echo + ./osppeer -dtest -t164.67.100.233:12997 -e cat1.jpg cat2.jpg cat3.jpg
-	@./osppeer -dtest -t11111 -e cat1.jpg cat2.jpg cat3.jpg
+	@./osppeer -dtest -t164.67.100.231:12997 -e cat1.jpg cat2.jpg cat3.jpg
 
 clean:
 	-rm -f *.o *~ osptracker osptracker.cc osppeer
