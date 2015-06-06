@@ -796,6 +796,7 @@ static void task_upload(task_t *t)
 		osp2p_decrypt_encrypt_filename(tmp);
 		strcpy(t->filename,tmp);
 		message("* Encrypted Filename: %s\n",t->filename);
+		message("* Transferring file %s\n", t->filename);
 	}
 	else
 	 message("* Transferring file %s\n", t->filename);
