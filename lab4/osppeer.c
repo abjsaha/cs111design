@@ -289,7 +289,33 @@ int osp2p_encryption(char* name)
   	fclose(secureFile);
   	return 1;
 }
-int osp2p_decryption(char* name);
+int osp2p_decryption(char* name)
+{
+	FILE* insecureFile = fopen(name, "r");
+	FILE* secureFile = fopen("tmp", "w");
+	int ch;
+	if(!insecureFile || !secureFile)
+	{
+		error("* Decryption Error");
+		fclose(insecureFile);
+		fclose(secureFile);
+		return 0;
+	}
+	while ((ch = fgetc(insecureFile)) != EOF)
+	{
+		ch = ch ^ SUPERSECRETKEY;
+		if (fputc(ch, secureFile) == EOF)
+		{
+			error("* Decryption error\n");
+			return 0;
+		}
+	}
+	message("Decryption success");
+  	rename("tmp",name);
+  	fclose(insecureFile);
+  	fclose(secureFile);
+  	return 1;
+}
 void osp2p_decrypt_encrypt_filename(char* name)
 {
 	int i=0;
