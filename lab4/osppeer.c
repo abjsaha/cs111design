@@ -297,7 +297,30 @@ void osp2p_decrypt_encrypt_filename(char* name)
 		i++;
 	}
 }
-
+void cleanup()
+{
+	DIR *dir;
+	struct dirent *ent;
+	if ((dir = opendir(".")) == NULL)
+		die("open directory: %s", strerror(errno));
+	while ((ent = readdir(dir)) != NULL) {
+		int namelen = strlen(ent->d_name);
+		// don't depend on unreliable parts of the dirent structure
+		// and only report regular files.  Do not change these lines.
+		if (stat(ent->d_name, &s) < 0 || !S_ISREG(s.st_mode)
+		    || (namelen > 2 && ent->d_name[namelen - 2] == '.'
+			&& (ent->d_name[namelen - 1] == 'c'
+			    || ent->d_name[namelen - 1] == 'h'))
+		    || (namelen > 1 && ent->d_name[namelen - 1] == '~'))
+			continue;
+		//Design Problem
+		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
+		strcpy(tmp,ent->d_name);
+		osp2p_decrypt_encrypt_filename(ent->d_name);
+		rename(tmp,ent->d_name);
+	}
+	closedir(dir);
+}
 /******************************************************************************
  * THE OSP2P PROTOCOL
  * These functions manage connections to the tracker and connections to other
@@ -470,7 +493,6 @@ static void register_files(task_t *tracker_task, const char *myalias)
 			char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
 			strcpy(tmp,ent->d_name);
 			osp2p_decrypt_encrypt_filename(ent->d_name);
-			//strcpy(t->filename,tmp);
 			message("* Encrypted Filename: %s\n",ent->d_name);
 			rename(tmp,ent->d_name);
 		}
@@ -516,13 +538,13 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 	assert(tracker_task->type == TASK_TRACKER);
 
 	message("* Finding peers for '%s'\n", filename);
+	//Design Problem
 	char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
 	if(encrypt)
 	{
 		message("* Decrypted Filename: %s\n", filename);
 		strcpy(tmp,filename);
 		osp2p_decrypt_encrypt_filename(tmp);
-		//strcpy(t->filename,tmp);
 		message("* Encrypted Filename: %s\n",tmp);
 		osp2p_writef(tracker_task->peer_fd, "WANT %s\n", tmp);
 	}
@@ -539,6 +561,7 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 		error("* Error while allocating task");
 		goto exit;
 	}
+	//Design Problem
 	if(encrypt)
 	{	
 		strncpy(t->filename,tmp,FILENAMESIZ-1);
@@ -631,7 +654,6 @@ static void task_download(task_t *t, task_t *tracker_task)
 		if (i == 0)
 		{
 			//Exercise 2A: limit t->disk_filename and set last character to null byte to prevent buffer overflow
-			//strcpy(t->disk_filename, t->filename);
 			strncpy(t->disk_filename,t->filename,FILENAMESIZ-1);
 			t->disk_filename[FILENAMESIZ-1]='\0';
 		}
@@ -948,9 +970,6 @@ int main(int argc, char *argv[])
 		printf("* Password Validated!\n");
 	}
 	// First, download files named on command line.
-	/*for (; argc > 1; argc--, argv++)
-		if ((t = start_download(tracker_task, argv[1])))
-			task_download(t, tracker_task);*/
 	int count=0;
 	for(;argc>1;argc--,argv++)
 	{
@@ -982,8 +1001,6 @@ int main(int argc, char *argv[])
 		count--;
 	}
 	// Then accept connections from other peers and upload files to them!
-	/*while ((t = task_listen(listen_task)))
-		task_upload(t);*/
 	while((t=task_listen(listen_task)))
 	{
 		//Excercise 1: forked upload task to run in parallel
@@ -1004,5 +1021,8 @@ int main(int argc, char *argv[])
 			task_free(t);
 		}
 	}
+	//Design Problem
+	if(encrypt)
+		cleanup();
 	return 0;
 }
