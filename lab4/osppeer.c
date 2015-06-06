@@ -779,12 +779,6 @@ static void task_upload(task_t *t)
 		}
 	}
 	//Design Problem
-	if(encrypt)
-	{
-		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
-		strcpy(tmp,t->filename);
-		osp2p_decrypt_encrypt_filename(tmp);
-	}
 	char* tmp;
 	char* tmp2;
 	if(encrypt)
@@ -798,6 +792,7 @@ static void task_upload(task_t *t)
 		strcpy(t->filename,tmp);
 		rename(tmp2,t->filename);
 		message("* Encrypted Filename: %s\n",t->filename);
+		message("* Transferring file %s\n", tmp2);
 	}
 	else
 		message("* Transferring file %s\n", t->filename);
