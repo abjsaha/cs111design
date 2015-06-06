@@ -265,7 +265,7 @@ int open_socket(struct in_addr addr, int port)
  */
 int osp2p_encryption_decryption(char* name)
 {
-	FILE* insecureFile=fopen(name,"r");
+	FILE* insecureFile=fopen(name,"r+");
 	FILE* secureFile=fopen("tmp","ab+");
 	int ch;
   	if(!insecureFile||!secureFile)
