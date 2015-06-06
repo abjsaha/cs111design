@@ -23,7 +23,10 @@
 #include "md5.h"
 #include "osp2p.h"
 #include <sys/wait.h>
+#include <stdio.h>
 int evil_mode;			// nonzero iff this peer should behave badly
+int encrypt;	//nonzero iff encryption mode is on
+char* password="jasminejoy";	//default password is "password"
 
 static struct in_addr listen_addr;	// Define listening endpoint
 static int listen_port;
@@ -38,7 +41,7 @@ static int listen_port;
 #define TASKBUFSIZ	8249	// Size of task_t::buf
 #define FILENAMESIZ	256	// Size of task_t::filename
 #define MAXFILESIZ 1000000
-
+#define MAXPASSSIZ	25
 typedef enum tasktype {		// Which type of connection is this?
 	TASK_TRACKER,		// => Tracker connection
 	TASK_PEER_LISTEN,	// => Listens for upload requests
@@ -73,6 +76,8 @@ typedef struct task {
 				// function initializes this list;
 				// task_pop_peer() removes peers from it, one
 				// at a time, if a peer misbehaves.
+	//char* pass=(char*)malloc(sizeof(char)*MAXPASSSIZ);
+	char pass[MAXPASSSIZ];
 } task_t;
 
 
@@ -253,6 +258,42 @@ int open_socket(struct in_addr addr, int port)
 	return -1;
 }
 
+/******************************************************************************
+ * Design Problem Functions
+ */
+int osp2p_encryption(char* name)
+{
+	FILE* insecureFile=fopen(name,"r");
+	FILE* secureFile=fopen("tmp","w");
+	int ch;
+  	if(!insecureFile||!secureFile)
+  	{
+  		error("* Encryption Error");
+  		fclose(insecureFile);
+  		fclose(secureFile);
+  		return 0;
+  	}
+  	while ((ch = fgetc(insecureFile)) != EOF) 
+    {
+    	ch = ch^692;//692 is ascii summation of "jasminejoy"
+    	if (fputc(ch, secureFile) == EOF)
+		{
+	  		error("* Encryption error\n");
+	  		return 0;
+		}
+    }
+    message("Encryption success");
+  	rename("tmp",name);
+  	fclose(insecureFile);
+  	fclose(secureFile);
+  	return 1;
+}
+/*int osp2p_decryption(FILE* f)
+{
+	FILE* orig;
+	int byte;
+	if()
+}*/
 
 /******************************************************************************
  * THE OSP2P PROTOCOL
@@ -527,10 +568,38 @@ static void task_download(task_t *t, task_t *tracker_task)
 		error("* Cannot connect to peer: %s\n", strerror(errno));
 		goto try_again;
 	}
+	//Design Problem
+	if(encrypt)
+	{
+		//if(!strcmp(t->pass,password))
+	    //{
+	    	if(!osp2p_decryption(t->filename))
+			{
+			  error("Decryption of file failed!\n");
+			  goto try_again;
+			}
+	    //}
+		else
+		{
+			message("Decryption of file success!\n");
+		}
+	}
+	if(encrypt)
+	{
+		if(!osp2p_decryption_filename(t->filename,t->peer_fd))
+		{
+			error("Decryption of file name failed!\n");
+			goto try_again;
+		}
+		else
+		{
+			message("Filename decryption success\n");
+		}
+	}
 	//Exercise 3: Making dowload file name exceed the buffer, causing seg fault and crahsing the peer
 	if(evil_mode == 3)
 	{
-		char* errorFileName=malloc(sizeof(char)*(FILENAMESIZ*32));
+		char* errorFileName=(char*)malloc(sizeof(char)*(FILENAMESIZ*32));
 		int i=0;
 		while(i<FILENAMESIZ*32-1)
 		{
@@ -700,6 +769,24 @@ static void task_upload(task_t *t)
 		error("* Peer cannot serve files outside the current directory");
 		goto exit;
 	}
+	//Design Problem
+	if(encrypt != 0)
+	{
+		if(!osp2p_encryption(t->filename))
+		{
+			error("Encryption failed!\n");
+			goto exit;
+		}
+
+		if(!strcmp(t->pass,password))
+		  {
+			if(!osp2p_encryption(t->filename))
+			{
+				error("Decryption failed!\n");
+				goto exit;
+			}
+		  }
+	}
 	//Exercise 3: Set upload to different file than intended this file can be a virus
 	if(evil_mode == 1)
 		t->disk_fd = open("../virus", O_RDONLY);
@@ -807,6 +894,10 @@ int main(int argc, char *argv[])
 		evil_mode = 1;
 		--argc, ++argv;
 		goto argprocess;
+	} else if (argc >= 2 && strcmp(argv[1], "-e") == 0) {
+		encrypt = 1;
+		--argc, ++argv;
+		goto argprocess;
 	} else if (argc >= 2 && (strcmp(argv[1], "--help") == 0
 				 || strcmp(argv[1], "-h") == 0)) {
 		printf("Usage: osppeer [-tADDR:PORT | -tPORT] [-dDIR] [-b]\n"
@@ -820,7 +911,20 @@ int main(int argc, char *argv[])
 	tracker_task = start_tracker(tracker_addr, tracker_port);
 	listen_task = start_listen();
 	register_files(tracker_task, myalias);
-
+	//Design Problem
+	if(encrypt!=0)
+	{
+		char str[MAXPASSSIZ];
+		while(strcmp(password,str)!=0) {
+			printf("Enter the encryption key (0-25 characters) to download the files: ");
+			scanf("%s", str);	
+			if(strcmp(password,str)!=0)
+			{
+				printf("Wrong encryption key...\n");
+			}
+		}
+		printf("Password Validated!\n");
+	}
 	// First, download files named on command line.
 	/*for (; argc > 1; argc--, argv++)
 		if ((t = start_download(tracker_task, argv[1])))
