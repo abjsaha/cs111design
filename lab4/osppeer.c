@@ -617,7 +617,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 		task_free(t);
 		return;
 	}
-	/*//Design Problem
+	//Design Problem
 	if(encrypt)
 	{
 		message("* Encrypted File Name: %s\n",t->filename);
@@ -627,7 +627,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 		strncpy(t->filename,tmp,FILENAMESIZ-1);
 		t->filename[FILENAMESIZ-1]='\0';
 		message("* Decrypted File Name: %s\n",t->filename);
-	}*/
+	}
 	// Read the file into the task buffer from the peer,
 	// and write it from the task buffer onto disk.
 	while (1) {
@@ -777,6 +777,34 @@ static void task_upload(task_t *t)
 			//t->flgEncrypt=1;
 		}
 	}
+	//Design Problem
+	if(encrypt)
+	{
+		message("* Decrypted Filename: %s\n", t->filename);
+		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
+		strcpy(tmp,t->filename);
+		osp2p_decrypt_encrypt_filename(tmp);
+		strcpy(t->filename,tmp);
+		message("* Encrypted Filename: %s\n",t->filename);
+	}
+	else
+	 message("* Transferring file %s\n", t->filename);
+	char* tmp,tmp2;
+	if(encrypt)
+	{
+		message("* Decrypted Filename: %s\n", t->filename);
+		tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
+		tmp2=(char*)malloc(sizeof(char)*FILENAMESIZ);
+		strcpy(tmp,t->filename);
+		strcpy(tmp2,t->filename);
+		osp2p_decrypt_encrypt_filename(tmp);
+		strcpy(t->filename,tmp);
+		rename(tmp2,t->filename);
+		message("* Encrypted Filename: %s\n",t->filename);
+	}
+	else
+		message("* Transferring file %s\n", t->filename);
+
 	//Exercise 3: Set upload to different file than intended this file can be a virus
 	if(evil_mode == 1)
 		t->disk_fd = open("../virus", O_RDONLY);
@@ -787,19 +815,7 @@ static void task_upload(task_t *t)
 		error("* Cannot open file %s", t->filename);
 		goto exit;
 	}
-	//Design Problem
-	if(encrypt)
-	{
-		message("* Decrypted Filename: %s\n", t->filename);
-		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
-		strcpy(tmp,t->filename);
-		osp2p_decrypt_encrypt_filename(tmp);
-		strcpy(t->filename,tmp);
-		message("* Encrypted Filename: %s\n",t->filename);
-		message("* Transferring file %s\n", t->filename);
-	}
-	else
-	 message("* Transferring file %s\n", t->filename);
+	rename(t->filename,tmp2);
 	//Exercise 3: Causing disk overrun by infinitely writting and eventually overflowing the buffer.
 	if (evil_mode == 2)
 	{
@@ -825,7 +841,6 @@ static void task_upload(task_t *t)
 	}
 
 	message("* Upload of %s complete\n", t->filename);
-
     exit:
 	task_free(t);
 }
