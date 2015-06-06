@@ -620,17 +620,6 @@ static void task_download(task_t *t, task_t *tracker_task)
 	//Design Problem
 	if(encrypt)
 	{
-		message("* Encrypted File Name: %s",t->filename);
-		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
-		strncpy(tmp,t->filename,FILENAMESIZ-1);
-		osp2p_decrypt_encrypt_filename(tmp);
-		strncpy(t->filename,tmp,FILENAMESIZ-1);
-		t->filename[FILENAMESIZ-1]='\0';
-		message("* Decrypted File Name: %s",t->filename);
-	}
-	//Design Problem
-	if(encrypt)
-	{
 	   	if(!osp2p_encryption_decryption(t->filename))
 		{
 			error("* Decryption of file failed!\n");
@@ -642,6 +631,18 @@ static void task_download(task_t *t, task_t *tracker_task)
 			//t->flgEncrypt=0;
 		}
 	}
+	//Design Problem
+	if(encrypt)
+	{
+		message("* Encrypted File Name: %s",t->filename);
+		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
+		strncpy(tmp,t->filename,FILENAMESIZ-1);
+		osp2p_decrypt_encrypt_filename(tmp);
+		strncpy(t->filename,tmp,FILENAMESIZ-1);
+		t->filename[FILENAMESIZ-1]='\0';
+		message("* Decrypted File Name: %s",t->filename);
+	}
+	
 	// Read the file into the task buffer from the peer,
 	// and write it from the task buffer onto disk.
 	while (1) {
