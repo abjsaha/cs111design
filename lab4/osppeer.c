@@ -520,8 +520,23 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 		error("* Error while allocating task");
 		goto exit;
 	}
-	strncpy(t->filename,filename,FILENAMESIZ-1);
-	t->filename[FILENAMESIZ-1]='\0';
+	//Design Problem
+	if(encrypt)
+	{
+		message("* Encrypted File Name: %s\n",t->filename);
+		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
+		strncpy(tmp,t->filename,FILENAMESIZ-1);
+		osp2p_decrypt_encrypt_filename(tmp);
+		strncpy(t->filename,tmp,FILENAMESIZ-1);
+		t->filename[FILENAMESIZ-1]='\0';
+		message("* Decrypted File Name: %s\n",t->filename);
+	}
+	else
+	{
+		strncpy(t->filename,filename,FILENAMESIZ-1);
+		t->filename[FILENAMESIZ-1]='\0';	
+	}
+	
 	// add peers
 	s1 = tracker_task->buf;
 	while ((s2 = memchr(s1, '\n', (tracker_task->buf + messagepos) - s1))) {
@@ -586,17 +601,6 @@ static void task_download(task_t *t, task_t *tracker_task)
 	else
 	{
 		osp2p_writef(t->peer_fd, "GET %s OSP2P\n", t->filename);
-	}
-	//Design Problem
-	if(encrypt)
-	{
-		message("* Encrypted File Name: %s\n",t->filename);
-		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
-		strncpy(tmp,t->filename,FILENAMESIZ-1);
-		osp2p_decrypt_encrypt_filename(tmp);
-		strncpy(t->filename,tmp,FILENAMESIZ-1);
-		t->filename[FILENAMESIZ-1]='\0';
-		message("* Decrypted File Name: %s\n",t->filename);
 	}
 	// Open disk file for the result.
 	// If the filename already exists, save the file in a name like
@@ -831,7 +835,7 @@ static void task_upload(task_t *t)
 			/* End of file */
 			break;
 	}
-
+	strcpy(t->filename,tmp2);
 	message("* Upload of %s complete\n", t->filename);
     exit:
 	task_free(t);
