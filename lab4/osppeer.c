@@ -733,15 +733,7 @@ static void task_upload(task_t *t)
 	char* tmp2;
 	if(encrypt)
 	{
-		message("* Decrypted Filename: %s\n", t->filename);
-		tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
-		tmp2=(char*)malloc(sizeof(char)*FILENAMESIZ);
-		strcpy(tmp,t->filename);
-		strcpy(tmp2,t->filename);
-		osp2p_decrypt_encrypt_filename(tmp);
-		strcpy(t->filename,tmp);
-		rename(tmp2,t->filename);
-		message("* Encrypted Filename: %s\n",t->filename);
+		
 		// First, read the request from the peer.
 		while (1) {
 			int ret = read_to_taskbuf(t->peer_fd, t);
@@ -758,7 +750,15 @@ static void task_upload(task_t *t)
 			goto exit;
 		}
 		t->head = t->tail = 0;
-
+		message("* Decrypted Filename: %s\n", t->filename);
+		tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
+		tmp2=(char*)malloc(sizeof(char)*FILENAMESIZ);
+		strcpy(tmp,t->filename);
+		strcpy(tmp2,t->filename);
+		osp2p_decrypt_encrypt_filename(tmp);
+		strcpy(t->filename,tmp);
+		rename(tmp2,t->filename);
+		message("* Encrypted Filename: %s\n",t->filename);
 		// Exercise 2B: check that the files being served are inside the current directory
 		char requested_dir[PATH_MAX];
 		char current_dir[PATH_MAX];
