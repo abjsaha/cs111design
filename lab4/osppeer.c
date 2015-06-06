@@ -728,43 +728,99 @@ static task_t *task_listen(task_t *listen_task)
 static void task_upload(task_t *t)
 {
 	assert(t->type == TASK_UPLOAD);
-	// First, read the request from the peer.
-	while (1) {
-		int ret = read_to_taskbuf(t->peer_fd, t);
-		if (ret == TBUF_ERROR) {
+	//Design Problem
+	char* tmp;
+	char* tmp2;
+	if(encrypt)
+	{
+		message("* Decrypted Filename: %s\n", t->filename);
+		tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
+		tmp2=(char*)malloc(sizeof(char)*FILENAMESIZ);
+		strcpy(tmp,t->filename);
+		strcpy(tmp2,t->filename);
+		osp2p_decrypt_encrypt_filename(tmp);
+		strcpy(t->filename,tmp);
+		rename(tmp2,t->filename);
+		message("* Encrypted Filename: %s\n",t->filename);
+		// First, read the request from the peer.
+		while (1) {
+			int ret = read_to_taskbuf(t->peer_fd, t);
+			if (ret == TBUF_ERROR) {
+				error("* Cannot read from connection");
+				goto exit;
+			} else if (ret == TBUF_END
+				   || (t->tail && t->buf[t->tail-1] == '\n'))
+				break;
+		}
+		assert(t->head == 0);
+		if (osp2p_snscanf(t->buf, t->tail, "GET %s OSP2P\n", t->filename) < 0) {
+			error("* Odd request %.*s\n", t->tail, t->buf);
+			goto exit;
+		}
+		t->head = t->tail = 0;
+
+		// Exercise 2B: check that the files being served are inside the current directory
+		char requested_dir[PATH_MAX];
+		char current_dir[PATH_MAX];
+
+		if (!getcwd(current_dir, PATH_MAX))
+		{
+			error("* Invalid current path");
+			goto exit;
+		}
+
+		if (!realpath(tmp2, requested_dir))
+		{
+			error("* Invalid requested path");
+			goto exit;
+		}
+
+		if (strncmp(current_dir, requested_dir, strlen(current_dir)))
+		{
+			error("* Peer cannot serve files outside the current directory");
+			goto exit;
+		}
+	}
+	else
+	{
+		// First, read the request from the peer.
+		while (1) {
+			int ret = read_to_taskbuf(t->peer_fd, t);
+			if (ret == TBUF_ERROR) {
 			error("* Cannot read from connection");
 			goto exit;
-		} else if (ret == TBUF_END
-			   || (t->tail && t->buf[t->tail-1] == '\n'))
-			break;
-	}
-	assert(t->head == 0);
-	if (osp2p_snscanf(t->buf, t->tail, "GET %s OSP2P\n", t->filename) < 0) {
-		error("* Odd request %.*s\n", t->tail, t->buf);
-		goto exit;
-	}
-	t->head = t->tail = 0;
+			} else if (ret == TBUF_END
+				   || (t->tail && t->buf[t->tail-1] == '\n'))
+				break;
+		}
+		assert(t->head == 0);
+		if (osp2p_snscanf(t->buf, t->tail, "GET %s OSP2P\n", t->filename) < 0) {
+			error("* Odd request %.*s\n", t->tail, t->buf);
+			goto exit;
+		}
+		t->head = t->tail = 0;	
 
-	// Exercise 2B: check that the files being served are inside the current directory
-	char requested_dir[PATH_MAX];
-	char current_dir[PATH_MAX];
+		// Exercise 2B: check that the files being served are inside the current directory
+		char requested_dir[PATH_MAX];
+		char current_dir[PATH_MAX];
 
-	if (!getcwd(current_dir, PATH_MAX))
-	{
-		error("* Invalid current path");
-		goto exit;
-	}
+		if (!getcwd(current_dir, PATH_MAX))
+		{
+			error("* Invalid current path");
+			goto exit;
+		}
 
-	if (!realpath(t->filename, requested_dir))
-	{
-		error("* Invalid requested path");
-		goto exit;
-	}
+		if (!realpath(t->filename, requested_dir))
+		{
+			error("* Invalid requested path");
+			goto exit;
+		}
 
-	if (strncmp(current_dir, requested_dir, strlen(current_dir)))
-	{
-		error("* Peer cannot serve files outside the current directory");
-		goto exit;
+		if (strncmp(current_dir, requested_dir, strlen(current_dir)))
+		{
+			error("* Peer cannot serve files outside the current directory");
+			goto exit;
+		}
 	}
 	//Design Problem
 	if(encrypt)
@@ -780,24 +836,8 @@ static void task_upload(task_t *t)
 			//t->flgEncrypt=1;
 		}
 	}
-	//Design Problem
-	char* tmp;
-	char* tmp2;
-	if(encrypt)
-	{
-		message("* Decrypted Filename: %s\n", t->filename);
-		tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
-		tmp2=(char*)malloc(sizeof(char)*FILENAMESIZ);
-		strcpy(tmp,t->filename);
-		strcpy(tmp2,t->filename);
-		osp2p_decrypt_encrypt_filename(tmp);
-		strcpy(t->filename,tmp);
-		rename(tmp2,t->filename);
-		message("* Encrypted Filename: %s\n",t->filename);
-		message("* Transferring file %s\n", tmp2);
-	}
-	else
-		message("* Transferring file %s\n", t->filename);
+
+	message("* Transferring file %s\n", t->filename);
 
 	//Exercise 3: Set upload to different file than intended this file can be a virus
 	if(evil_mode == 1)
