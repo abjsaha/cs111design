@@ -284,8 +284,8 @@ int osp2p_encryption_decryption(char* name)
     }
     remove(name);
   	rename("tmp",name);
-  	fclose(insecureFile);
-  	fclose(secureFile);
+  	//fclose(insecureFile);
+  	//fclose(secureFile);
   	return 1;
 }
 void osp2p_decrypt_encrypt_filename(char* name)
