@@ -521,6 +521,7 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 		error("* Error while allocating task");
 		goto exit;
 	}
+	//Design Problem
 	if(encrypt)
 	{
 		char* tmp;
@@ -586,29 +587,14 @@ static void task_download(task_t *t, task_t *tracker_task)
 	//Design Problem
 	if(encrypt)
 	{
-		//if(!strcmp(t->pass,password))
-	    //{
-	    	if(!osp2p_decryption(t->filename))
-			{
-			  error("Decryption of file failed!\n");
-			  goto try_again;
-			}
-	    //}
-		else
+	   	if(!osp2p_decryption(t->filename))
 		{
-			message("Decryption of file success!\n");
-		}
-	}
-	if(encrypt)
-	{
-		if(!osp2p_decryption_filename(t->filename,t->peer_fd))
-		{
-			error("Decryption of file name failed!\n");
+			error("* Decryption of file failed!\n");
 			goto try_again;
 		}
-		else
+	    else
 		{
-			message("Filename decryption success\n");
+			message("* Decryption of file success!\n");
 		}
 	}
 	//Exercise 3: Making dowload file name exceed the buffer, causing seg fault and crahsing the peer
@@ -755,7 +741,6 @@ static void task_upload(task_t *t)
 			   || (t->tail && t->buf[t->tail-1] == '\n'))
 			break;
 	}
-
 	assert(t->head == 0);
 	if (osp2p_snscanf(t->buf, t->tail, "GET %s OSP2P\n", t->filename) < 0) {
 		error("* Odd request %.*s\n", t->tail, t->buf);
@@ -785,22 +770,13 @@ static void task_upload(task_t *t)
 		goto exit;
 	}
 	//Design Problem
-	if(encrypt != 0)
+	if(encrypt)
 	{
 		if(!osp2p_encryption(t->filename))
 		{
-			error("Encryption failed!\n");
+			error("* Encryption failed!\n");
 			goto exit;
 		}
-
-		if(!strcmp(t->pass,password))
-		  {
-			if(!osp2p_encryption(t->filename))
-			{
-				error("Decryption failed!\n");
-				goto exit;
-			}
-		  }
 	}
 	//Exercise 3: Set upload to different file than intended this file can be a virus
 	if(evil_mode == 1)
@@ -812,8 +788,18 @@ static void task_upload(task_t *t)
 		error("* Cannot open file %s", t->filename);
 		goto exit;
 	}
-
-	message("* Transferring file %s\n", t->filename);
+	//Design Problem
+	if(encrypt)
+	{
+		message("* Transferring file %s\n", t->filename);
+		char* tmp;
+		strcpy(tmp,t->filename);
+		osp2p_decrypt_encrypt_filename(tmp);
+		strcpy(t->filename,tmp);
+		message("* Encrypted Filename: %s\n",t->filename);
+	}
+	else
+	 message("* Transferring file %s\n", t->filename);
 	//Exercise 3: Causing disk overrun by infinitely writting and eventually overflowing the buffer.
 	if (evil_mode == 2)
 	{
@@ -927,18 +913,18 @@ int main(int argc, char *argv[])
 	listen_task = start_listen();
 	register_files(tracker_task, myalias);
 	//Design Problem
-	if(encrypt!=0)
+	if(encrypt)
 	{
 		char str[MAXPASSSIZ];
-		while(strcmp(password,str)!=0) {
-			printf("Enter the encryption key (0-25 characters) to download the files: ");
+		while(strcmp(password,str)) {
+			printf("* Enter the encryption key (0-25 characters) to download the files: ");
 			scanf("%s", str);	
-			if(strcmp(password,str)!=0)
+			if(strcmp(password,str))
 			{
-				printf("Wrong encryption key...\n");
+				printf("* Wrong encryption key...\n");
 			}
 		}
-		printf("Password Validated!\n");
+		printf("* Password Validated!\n");
 	}
 	// First, download files named on command line.
 	/*for (; argc > 1; argc--, argv++)
