@@ -79,7 +79,7 @@ typedef struct task {
 				// at a time, if a peer misbehaves.
 	//char* pass=(char*)malloc(sizeof(char)*MAXPASSSIZ);
 	//char pass[MAXPASSSIZ];
-	int flgEncrypt=0;
+	int flgEncrypt;
 } task_t;
 
 
@@ -93,7 +93,7 @@ static task_t *task_new(tasktype_t type)
 		errno = ENOMEM;
 		return NULL;
 	}
-
+	t->flgEncrypt=0;
 	t->type = type;
 	t->peer_fd = t->disk_fd = -1;
 	t->head = t->tail = 0;
@@ -270,7 +270,6 @@ int osp2p_encryption(char* name)
 	int ch;
   	if(!insecureFile||!secureFile)
   	{
-  		error("* Encryption Error");
   		fclose(insecureFile);
   		fclose(secureFile);
   		return 0;
@@ -280,11 +279,11 @@ int osp2p_encryption(char* name)
     	ch = ch^SUPERSECRETKEY;
     	if (fputc(ch, secureFile) == EOF)
 		{
-	  		error("* Encryption error");
+			fclose(insecureFile);
+  			fclose(secureFile);
 	  		return 0;
 		}
     }
-    message("Encryption success");
   	rename("tmp",name);
   	fclose(insecureFile);
   	fclose(secureFile);
@@ -297,7 +296,6 @@ int osp2p_decryption(char* name)
 	int ch;
 	if(!insecureFile || !secureFile)
 	{
-		error("* Decryption Error");
 		fclose(insecureFile);
 		fclose(secureFile);
 		return 0;
@@ -307,11 +305,11 @@ int osp2p_decryption(char* name)
 		ch = ch ^ SUPERSECRETKEY;
 		if (fputc(ch, secureFile) == EOF)
 		{
-			error("* Decryption error");
+			fclose(insecureFile);
+			fclose(secureFile);
 			return 0;
 		}
 	}
-	message("Decryption success");
   	rename("tmp",name);
   	fclose(insecureFile);
   	fclose(secureFile);
@@ -550,7 +548,7 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 		goto exit;
 	}
 	//Design Problem
-	if(encrypt&&t->flgEncrypt)
+	/*if(encrypt&&t->flgEncrypt)
 	{
 		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
 		strncpy(tmp,filename,FILENAMESIZ-1);
@@ -559,12 +557,12 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 		t->filename[FILENAMESIZ-1]='\0';
 	}
 	else
-	{
+	{*/
 		//strcpy(t->filename, filename);
 		//Exercise 2A: limit t->filename and set last character to null byte to prevent buffer overflow
 		strncpy(t->filename,filename,FILENAMESIZ-1);
 		t->filename[FILENAMESIZ-1]='\0';
-	}
+	//}
 	// add peers
 	s1 = tracker_task->buf;
 	while ((s2 = memchr(s1, '\n', (tracker_task->buf + messagepos) - s1))) {
@@ -630,15 +628,6 @@ static void task_download(task_t *t, task_t *tracker_task)
 	{
 		osp2p_writef(t->peer_fd, "GET %s OSP2P\n", t->filename);
 	}
-	/*//Design Problem
-	if(encrypt)
-	{
-		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
-		strncpy(tmp,t->filename,FILENAMESIZ-1);
-		osp2p_decrypt_encrypt_filename(tmp);
-		strncpy(t->filename,tmp,FILENAMESIZ-1);
-		t->filename[FILENAMESIZ-1]='\0';
-	}*/
 	// Open disk file for the result.
 	// If the filename already exists, save the file in a name like
 	// "foo.txt~1~".  However, if there are 50 local files, don't download
@@ -669,30 +658,6 @@ static void task_download(task_t *t, task_t *tracker_task)
 		task_free(t);
 		return;
 	}
-
-	// Read the file into the task buffer from the peer,
-	// and write it from the task buffer onto disk.
-	while (1) {
-		//Exercise 2B: Check if file being written is larger than the set MAXFILESIZ and redo if true
-		if(t->total_written>=MAXFILESIZ)
-		{
-			error("* File too big");
-			goto try_again;
-		}
-		int ret = read_to_taskbuf(t->peer_fd, t);
-		if (ret == TBUF_ERROR) {
-			error("* Peer read error");
-			goto try_again;
-		} else if (ret == TBUF_END && t->head == t->tail)
-			/* End of file */
-			break;
-
-		ret = write_from_taskbuf(t->disk_fd, t);
-		if (ret == TBUF_ERROR) {
-			error("* Disk write error");
-			goto try_again;
-		}
-	}
 	//Design Problem
 	if(encrypt&&t->flgEncrypt)
 	{
@@ -705,6 +670,39 @@ static void task_download(task_t *t, task_t *tracker_task)
 		{
 			message("* Decryption of file success!\n");
 			t->flgEncrypt=0;
+		}
+	}
+	//Design Problem
+	if(encrypt&&t->flgEncrypt)
+	{
+		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
+		strncpy(tmp,t->filename,FILENAMESIZ-1);
+		osp2p_decrypt_encrypt_filename(tmp);
+		strncpy(t->filename,tmp,FILENAMESIZ-1);
+		t->filename[FILENAMESIZ-1]='\0';
+	}
+	// Read the file into the task buffer from the peer,
+	// and write it from the task buffer onto disk.
+	while (1) {
+		//Exercise 2B: Check if file being written is larger than the set MAXFILESIZ and redo if true
+		if(t->total_written>=MAXFILESIZ)
+		{
+			error("* File too big");
+			goto try_again;
+		}
+		int ret = read_to_taskbuf(t->peer_fd, t);
+		if (ret == TBUF_ERROR) {
+			error("* Peer read error");
+			message("\n");
+			goto try_again;
+		} else if (ret == TBUF_END && t->head == t->tail)
+			/* End of file */
+			break;
+
+		ret = write_from_taskbuf(t->disk_fd, t);
+		if (ret == TBUF_ERROR) {
+			error("* Disk write error");
+			goto try_again;
 		}
 	}
 	// Empty files are usually a symptom of some error.
@@ -945,6 +943,7 @@ int main(int argc, char *argv[])
 		printf("Usage: osppeer [-tADDR:PORT | -tPORT] [-dDIR] [-b]\n"
 "Options: -tADDR:PORT  Set tracker address and/or port.\n"
 "         -dDIR        Upload and download files from directory DIR.\n"
+"		  -e		   Encrypt mode!\n"
 "         -b[MODE]     Evil mode!!!!!!!!\n");
 		exit(0);
 	}
