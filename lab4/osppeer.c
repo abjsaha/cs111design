@@ -617,7 +617,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 		task_free(t);
 		return;
 	}
-	//Design Problem
+	/*//Design Problem
 	if(encrypt)
 	{
 		message("* Encrypted File Name: %s\n",t->filename);
@@ -627,7 +627,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 		strncpy(t->filename,tmp,FILENAMESIZ-1);
 		t->filename[FILENAMESIZ-1]='\0';
 		message("* Decrypted File Name: %s\n",t->filename);
-	}
+	}*/
 	// Read the file into the task buffer from the peer,
 	// and write it from the task buffer onto disk.
 	while (1) {
