@@ -288,12 +288,9 @@ int osp2p_encryption(char* name)
   	fclose(secureFile);
   	return 1;
 }
-/*int osp2p_decryption(FILE* f)
-{
-	FILE* orig;
-	int byte;
-	if()
-}*/
+int osp2p_decryption(char* name);
+int osp2p_decryption_filename(char* name, int pfd);
+int osp2p_encryption_filename(char* name, int pfd);
 
 /******************************************************************************
  * THE OSP2P PROTOCOL

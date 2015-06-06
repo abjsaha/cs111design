@@ -101,4 +101,6 @@ int osp2p_snscanf(const char *str, size_t len, const char *format, ...);
 
 int osp2p_encryption(char* name);
 int osp2p_decryption(char* name);
+int osp2p_decryption_filename(char* name, int pfd);
+int osp2p_encryption_filename(char* name, int pfd);
 #endif
