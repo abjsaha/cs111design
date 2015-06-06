@@ -787,8 +787,6 @@ static void task_upload(task_t *t)
 		strcpy(t->filename,tmp);
 		message("* Encrypted Filename: %s\n",t->filename);
 	}
-	else
-	 message("* Transferring file %s\n", t->filename);
 	char* tmp;
 	char* tmp2;
 	if(encrypt)
