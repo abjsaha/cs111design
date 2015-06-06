@@ -527,6 +527,7 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 		strncpy(tmp,filename,FILENAMESIZ-1);
 		osp2p_decrypt_encrypt_filename(tmp);
 		strncpy(t->filename,tmp,FILENAMESIZ-1);
+		t->filename[FILENAMESIZ-1]='\0';
 	}
 	else
 	{
