@@ -263,15 +263,13 @@ int open_socket(struct in_addr addr, int port)
 /******************************************************************************
  * Design Problem Functions
  */
-int osp2p_encryption(char* name)
+int osp2p_encryption_decryption(char* name)
 {
 	FILE* insecureFile=fopen(name,"r");
 	FILE* secureFile=fopen("tmp","ab+");
 	int ch;
   	if(!insecureFile||!secureFile)
   	{
-  		fclose(insecureFile);
-  		fclose(secureFile);
   		return 0;
   	}
   	while ((ch = fgetc(insecureFile)) != EOF) 
@@ -284,32 +282,7 @@ int osp2p_encryption(char* name)
 	  		return 0;
 		}
     }
-  	rename("tmp",name);
-  	fclose(insecureFile);
-  	fclose(secureFile);
-  	return 1;
-}
-int osp2p_decryption(char* name)
-{
-	FILE* insecureFile = fopen(name, "r");
-	FILE* secureFile = fopen("tmp", "ab+");
-	int ch;
-	if(!insecureFile || !secureFile)
-	{
-		fclose(insecureFile);
-		fclose(secureFile);
-		return 0;
-	}
-	while ((ch = fgetc(insecureFile)) != EOF)
-	{
-		ch = ch ^ SUPERSECRETKEY;
-		if (fputc(ch, secureFile) == EOF)
-		{
-			fclose(insecureFile);
-			fclose(secureFile);
-			return 0;
-		}
-	}
+    remove(name);
   	rename("tmp",name);
   	fclose(insecureFile);
   	fclose(secureFile);
@@ -547,22 +520,8 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 		error("* Error while allocating task");
 		goto exit;
 	}
-	//Design Problem
-	/*if(encrypt&&t->flgEncrypt)
-	{
-		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
-		strncpy(tmp,filename,FILENAMESIZ-1);
-		osp2p_decrypt_encrypt_filename(tmp);
-		strncpy(t->filename,tmp,FILENAMESIZ-1);
-		t->filename[FILENAMESIZ-1]='\0';
-	}
-	else
-	{*/
-		//strcpy(t->filename, filename);
-		//Exercise 2A: limit t->filename and set last character to null byte to prevent buffer overflow
-		strncpy(t->filename,filename,FILENAMESIZ-1);
-		t->filename[FILENAMESIZ-1]='\0';
-	//}
+	strncpy(t->filename,filename,FILENAMESIZ-1);
+	t->filename[FILENAMESIZ-1]='\0';
 	// add peers
 	s1 = tracker_task->buf;
 	while ((s2 = memchr(s1, '\n', (tracker_task->buf + messagepos) - s1))) {
@@ -661,7 +620,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 	//Design Problem
 	if(encrypt)
 	{
-	   	if(!osp2p_decryption(t->filename))
+	   	if(!osp2p_encryption_decryption(t->filename))
 		{
 			error("* Decryption of file failed!\n");
 			goto try_again;
@@ -806,7 +765,7 @@ static void task_upload(task_t *t)
 	//Design Problem
 	if(encrypt)
 	{
-		if(!osp2p_encryption(t->filename))
+		if(!osp2p_encryption_decryption(t->filename))
 		{
 			error("* Encryption failed!\n");
 			goto exit;
