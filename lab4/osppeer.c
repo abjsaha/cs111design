@@ -628,20 +628,6 @@ static void task_download(task_t *t, task_t *tracker_task)
 		task_free(t);
 		return;
 	}
-	//Design Problem
-	if(encrypt)
-	{
-	   	if(!osp2p_encryption_decryption(t->filename))
-		{
-			error("* Decryption of file failed!\n");
-			goto try_again;
-		}
-	    else
-		{
-			message("* Decryption of file success!\n");
-			//t->flgEncrypt=0;
-		}
-	}
 	// Read the file into the task buffer from the peer,
 	// and write it from the task buffer onto disk.
 	while (1) {
@@ -670,6 +656,19 @@ static void task_download(task_t *t, task_t *tracker_task)
 	if (t->total_written > 0) {
 		message("* Downloaded '%s' was %lu bytes long\n",
 			t->disk_filename, (unsigned long) t->total_written);
+		//Design Problem
+		if(encrypt)
+		{
+	  	 	if(!osp2p_encryption_decryption(t->filename))
+			{
+				error("* Decryption of file failed!\n");
+				goto try_again;
+			}
+	  	  else
+			{
+				message("* Decryption of file success!\n");
+			}
+		}
 		// Inform the tracker that we now have the file,
 		// and can serve it to others!  (But ignore tracker errors.)
 		if (strcmp(t->filename, t->disk_filename) == 0) {
