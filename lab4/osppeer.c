@@ -728,61 +728,8 @@ static task_t *task_listen(task_t *listen_task)
 static void task_upload(task_t *t)
 {
 	assert(t->type == TASK_UPLOAD);
-	//Design Problem
-	char* tmp;
-	char* tmp2;
-	if(encrypt)
-	{
-		
-		// First, read the request from the peer.
-		while (1) {
-			int ret = read_to_taskbuf(t->peer_fd, t);
-			if (ret == TBUF_ERROR) {
-				error("* Cannot read from connection");
-				goto exit;
-			} else if (ret == TBUF_END
-				   || (t->tail && t->buf[t->tail-1] == '\n'))
-				break;
-		}
-		assert(t->head == 0);
-		if (osp2p_snscanf(t->buf, t->tail, "GET %s OSP2P\n", t->filename) < 0) {
-			error("* Odd request %.*s\n", t->tail, t->buf);
-			goto exit;
-		}
-		t->head = t->tail = 0;
-		message("* Decrypted Filename: %s\n", t->filename);
-		tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
-		tmp2=(char*)malloc(sizeof(char)*FILENAMESIZ);
-		strcpy(tmp,t->filename);
-		strcpy(tmp2,t->filename);
-		osp2p_decrypt_encrypt_filename(tmp);
-		strcpy(t->filename,tmp);
-		message("* Encrypted Filename: %s\n",t->filename);
-		// Exercise 2B: check that the files being served are inside the current directory
-		char requested_dir[PATH_MAX];
-		char current_dir[PATH_MAX];
 
-		if (!getcwd(current_dir, PATH_MAX))
-		{
-			error("* Invalid current path");
-			goto exit;
-		}
 
-		if (!realpath(tmp2, requested_dir))
-		{
-			error("* Invalid requested path");
-			goto exit;
-		}
-
-		if (strncmp(current_dir, requested_dir, strlen(current_dir)))
-		{
-			error("* Peer cannot serve files outside the current directory");
-			goto exit;
-		}
-		rename(tmp2,t->filename);
-	}
-	else
-	{
 		// First, read the request from the peer.
 		while (1) {
 			int ret = read_to_taskbuf(t->peer_fd, t);
@@ -821,18 +768,17 @@ static void task_upload(task_t *t)
 			error("* Peer cannot serve files outside the current directory");
 			goto exit;
 		}
-	}
 	//Design Problem
 	if(encrypt)
 	{
 		if(!osp2p_encryption_decryption(t->filename))
 		{
-			error("* Encryption failed!\n");
+			error("* File Encryption failed!\n");
 			goto exit;
 		}
 		else
 		{
-			message("* Encryption success!\n");
+			message("* File Encryption success!\n");
 			//t->flgEncrypt=1;
 		}
 	}
@@ -849,7 +795,21 @@ static void task_upload(task_t *t)
 		error("* Cannot open file %s", t->filename);
 		goto exit;
 	}
-
+		//Design Problem
+	char* tmp;
+	char* tmp2;
+	if(encrypt)
+	{
+		message("* Decrypted Filename: %s\n", t->filename);
+		tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
+		tmp2=(char*)malloc(sizeof(char)*FILENAMESIZ);
+		strcpy(tmp,t->filename);
+		strcpy(tmp2,t->filename);
+		osp2p_decrypt_encrypt_filename(tmp);
+		strcpy(t->filename,tmp);
+		message("* Encrypted Filename: %s\n",t->filename);
+	}
+	message("* Transferring file %s\n", t->filename);
 	//Exercise 3: Causing disk overrun by infinitely writting and eventually overflowing the buffer.
 	if (evil_mode == 2)
 	{
@@ -873,8 +833,11 @@ static void task_upload(task_t *t)
 			/* End of file */
 			break;
 	}
-	rename(t->filename,tmp2);
-	strcpy(t->filename,tmp2);
+	/*if(encrypt)
+	{
+		rename(t->filename,tmp2);
+		strcpy(t->filename,tmp2);
+	}*/
 	message("* Upload of %s complete\n", t->filename);
     exit:
 	task_free(t);
