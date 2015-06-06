@@ -42,6 +42,7 @@ static int listen_port;
 #define FILENAMESIZ	256	// Size of task_t::filename
 #define MAXFILESIZ 1000000
 #define MAXPASSSIZ	25
+#define SUPERSECRETKEY 1081
 typedef enum tasktype {		// Which type of connection is this?
 	TASK_TRACKER,		// => Tracker connection
 	TASK_PEER_LISTEN,	// => Listens for upload requests
@@ -275,7 +276,7 @@ int osp2p_encryption(char* name)
   	}
   	while ((ch = fgetc(insecureFile)) != EOF) 
     {
-    	ch = ch^692;//692 is ascii summation of "jasminejoy"
+    	ch = ch^SUPERSECRETKEY;//692 is ascii summation of "jasminejoy"
     	if (fputc(ch, secureFile) == EOF)
 		{
 	  		error("* Encryption error\n");
@@ -289,8 +290,14 @@ int osp2p_encryption(char* name)
   	return 1;
 }
 int osp2p_decryption(char* name);
-int osp2p_decryption_filename(char* name, int pfd);
-int osp2p_encryption_filename(char* name, int pfd);
+void osp2p_decrypt_encrypt_filename(char* name)
+{
+	int i=0;
+	while(i<FILENAMESIZ)
+	{
+		name[i]^=SUPERSECRETKEY;
+	}
+}
 
 /******************************************************************************
  * THE OSP2P PROTOCOL
@@ -514,10 +521,20 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 		error("* Error while allocating task");
 		goto exit;
 	}
-	//strcpy(t->filename, filename);
-	//Exercise 2A: limit t->filename and set last character to null byte to prevent buffer overflow
-	strncpy(t->filename,filename,FILENAMESIZ-1);
-	t->filename[FILENAMESIZ-1]='\0';
+	if(encrypt)
+	{
+		char* tmp;
+		strncpy(tmp,filename,FILENAMESIZ-1);
+		osp2p_decrypt_encrypt_filename(tmp);
+		strncpy(t->filename,tmp,FILENAMESIZ-1);
+	}
+	else
+	{
+		//strcpy(t->filename, filename);
+		//Exercise 2A: limit t->filename and set last character to null byte to prevent buffer overflow
+		strncpy(t->filename,filename,FILENAMESIZ-1);
+		t->filename[FILENAMESIZ-1]='\0';
+	}
 	// add peers
 	s1 = tracker_task->buf;
 	while ((s2 = memchr(s1, '\n', (tracker_task->buf + messagepos) - s1))) {
