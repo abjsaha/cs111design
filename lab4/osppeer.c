@@ -787,7 +787,7 @@ static void task_upload(task_t *t)
 		error("* Cannot open file %s", t->filename);
 		goto exit;
 	}
-	//Design Problem
+	/*//Design Problem
 	if(encrypt)
 	{
 		message("* Decrypted Filename: %s\n", t->filename);
@@ -797,7 +797,7 @@ static void task_upload(task_t *t)
 		strcpy(t->filename,tmp);
 		message("* Encrypted Filename: %s\n",t->filename);
 	}
-	else
+	else*/
 	 message("* Transferring file %s\n", t->filename);
 	//Exercise 3: Causing disk overrun by infinitely writting and eventually overflowing the buffer.
 	if (evil_mode == 2)
