@@ -455,7 +455,7 @@ static void register_files(task_t *tracker_task, const char *myalias)
 		die("open directory: %s", strerror(errno));
 	while ((ent = readdir(dir)) != NULL) {
 		int namelen = strlen(ent->d_name);
-
+		message("%s\n",ent->d_name);
 		// don't depend on unreliable parts of the dirent structure
 		// and only report regular files.  Do not change these lines.
 		if (stat(ent->d_name, &s) < 0 || !S_ISREG(s.st_mode)
