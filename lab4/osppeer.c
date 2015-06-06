@@ -669,7 +669,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 	    else
 		{
 			message("* Decryption of file success!\n");
-			t->flgEncrypt=0;
+			//t->flgEncrypt=0;
 		}
 	}
 	//Design Problem
