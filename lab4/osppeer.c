@@ -592,14 +592,14 @@ static void task_download(task_t *t, task_t *tracker_task)
 	}
 	//Design Problem
 	//char* tmp;
-	if(encrypt)
+	/*if(encrypt)
 	{
 		message("* Encrypted File Name: %s\n",t->filename);
 		//tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
 		//strncpy(tmp,t->filename,FILENAMESIZ-1);
 		osp2p_decrypt_encrypt_filename(t->filename);
 		message("* Decrypted File Name: %s\n",t->filename);
-	}
+	}*/
 	// Open disk file for the result.
 	// If the filename already exists, save the file in a name like
 	// "foo.txt~1~".  However, if there are 50 local files, don't download
@@ -783,8 +783,6 @@ static void task_upload(task_t *t)
 		}
 	}
 
-	message("* Transferring file %s\n", t->filename);
-
 	//Exercise 3: Set upload to different file than intended this file can be a virus
 	if(evil_mode == 1)
 		t->disk_fd = open("../virus", O_RDONLY);
@@ -796,7 +794,7 @@ static void task_upload(task_t *t)
 		goto exit;
 	}
 		//Design Problem
-	char* tmp;
+	/*char* tmp;
 	char* tmp2;
 	if(encrypt)
 	{
@@ -808,7 +806,7 @@ static void task_upload(task_t *t)
 		osp2p_decrypt_encrypt_filename(tmp);
 		strcpy(t->filename,tmp);
 		message("* Encrypted Filename: %s\n",t->filename);
-	}
+	}*/
 	message("* Transferring file %s\n", t->filename);
 	//Exercise 3: Causing disk overrun by infinitely writting and eventually overflowing the buffer.
 	if (evil_mode == 2)
