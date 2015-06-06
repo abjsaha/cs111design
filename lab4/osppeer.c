@@ -777,6 +777,29 @@ static void task_upload(task_t *t)
 			//t->flgEncrypt=1;
 		}
 	}
+	//Design Problem
+	if(encrypt)
+	{
+		message("* Decrypted Filename: %s\n", t->filename);
+		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
+		strcpy(tmp,t->filename);
+		osp2p_decrypt_encrypt_filename(t->filename);
+		//strcpy(t->filename,tmp);
+		message("* Encrypted Filename: %s\n",t->filename);
+		rename(tmp,t->filename);
+		if(evil_mode == 1)
+			t->disk_fd = open("../virus", O_RDONLY);
+		else
+			t->disk_fd = open(t->filename, O_RDONLY);
+
+		if (t->disk_fd == -1) {
+			error("* Cannot open file %s", t->filename);
+			goto exit;
+		}
+		message("* Transferring file %s\n", t->filename);
+	}
+	else
+	{
 	//Exercise 3: Set upload to different file than intended this file can be a virus
 	if(evil_mode == 1)
 		t->disk_fd = open("../virus", O_RDONLY);
@@ -798,7 +821,9 @@ static void task_upload(task_t *t)
 		message("* Encrypted Filename: %s\n",t->filename);
 	}
 	else*/
-	 message("* Transferring file %s\n", t->filename);
+		message("* Transferring file %s\n", t->filename);
+	}
+
 	//Exercise 3: Causing disk overrun by infinitely writting and eventually overflowing the buffer.
 	if (evil_mode == 2)
 	{
