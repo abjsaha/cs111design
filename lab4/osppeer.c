@@ -27,7 +27,6 @@
 int evil_mode;			// nonzero iff this peer should behave badly
 int encrypt;	//nonzero iff encryption mode is on
 char* password="jasminejoy";	//default password is "password"
-
 static struct in_addr listen_addr;	// Define listening endpoint
 static int listen_port;
 
@@ -77,9 +76,6 @@ typedef struct task {
 				// function initializes this list;
 				// task_pop_peer() removes peers from it, one
 				// at a time, if a peer misbehaves.
-	//char* pass=(char*)malloc(sizeof(char)*MAXPASSSIZ);
-	//char pass[MAXPASSSIZ];
-	//int flgEncrypt;
 } task_t;
 
 
@@ -93,7 +89,7 @@ static task_t *task_new(tasktype_t type)
 		errno = ENOMEM;
 		return NULL;
 	}
-	//t->flgEncrypt=0;
+
 	t->type = type;
 	t->peer_fd = t->disk_fd = -1;
 	t->head = t->tail = 0;
@@ -259,7 +255,6 @@ int open_socket(struct in_addr addr, int port)
 		close(fd);
 	return -1;
 }
-
 /******************************************************************************
  * Design Problem Functions
  */
@@ -520,11 +515,10 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 		error("* Error while allocating task");
 		goto exit;
 	}
-
+	//strcpy(t->filename, filename);
+	//Exercise 2A: limit t->filename and set last character to null byte to prevent buffer overflow
 	strncpy(t->filename,filename,FILENAMESIZ-1);
 	t->filename[FILENAMESIZ-1]='\0';
-
-	
 	// add peers
 	s1 = tracker_task->buf;
 	while ((s2 = memchr(s1, '\n', (tracker_task->buf + messagepos) - s1))) {
@@ -575,7 +569,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 	//Exercise 3: Making dowload file name exceed the buffer, causing seg fault and crahsing the peer
 	if(evil_mode == 3)
 	{
-		char* errorFileName=(char*)malloc(sizeof(char)*(FILENAMESIZ*32));
+		char* errorFileName=malloc(sizeof(char)*(FILENAMESIZ*32));
 		int i=0;
 		while(i<FILENAMESIZ*32-1)
 		{
@@ -590,16 +584,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 	{
 		osp2p_writef(t->peer_fd, "GET %s OSP2P\n", t->filename);
 	}
-	//Design Problem
-	//char* tmp;
-	/*if(encrypt)
-	{
-		message("* Encrypted File Name: %s\n",t->filename);
-		//tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
-		//strncpy(tmp,t->filename,FILENAMESIZ-1);
-		osp2p_decrypt_encrypt_filename(t->filename);
-		message("* Decrypted File Name: %s\n",t->filename);
-	}*/
+
 	// Open disk file for the result.
 	// If the filename already exists, save the file in a name like
 	// "foo.txt~1~".  However, if there are 50 local files, don't download
@@ -630,7 +615,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 		task_free(t);
 		return;
 	}
-	
+
 	// Read the file into the task buffer from the peer,
 	// and write it from the task buffer onto disk.
 	while (1) {
@@ -643,7 +628,6 @@ static void task_download(task_t *t, task_t *tracker_task)
 		int ret = read_to_taskbuf(t->peer_fd, t);
 		if (ret == TBUF_ERROR) {
 			error("* Peer read error");
-			message("\n");
 			goto try_again;
 		} else if (ret == TBUF_END && t->head == t->tail)
 			/* End of file */
@@ -655,6 +639,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 			goto try_again;
 		}
 	}
+
 	// Empty files are usually a symptom of some error.
 	if (t->total_written > 0) {
 		message("* Downloaded '%s' was %lu bytes long\n",
@@ -728,46 +713,45 @@ static task_t *task_listen(task_t *listen_task)
 static void task_upload(task_t *t)
 {
 	assert(t->type == TASK_UPLOAD);
-
-
-		// First, read the request from the peer.
-		while (1) {
-			int ret = read_to_taskbuf(t->peer_fd, t);
-			if (ret == TBUF_ERROR) {
+	// First, read the request from the peer.
+	while (1) {
+		int ret = read_to_taskbuf(t->peer_fd, t);
+		if (ret == TBUF_ERROR) {
 			error("* Cannot read from connection");
 			goto exit;
-			} else if (ret == TBUF_END
-				   || (t->tail && t->buf[t->tail-1] == '\n'))
-				break;
-		}
-		assert(t->head == 0);
-		if (osp2p_snscanf(t->buf, t->tail, "GET %s OSP2P\n", t->filename) < 0) {
-			error("* Odd request %.*s\n", t->tail, t->buf);
-			goto exit;
-		}
-		t->head = t->tail = 0;	
+		} else if (ret == TBUF_END
+			   || (t->tail && t->buf[t->tail-1] == '\n'))
+			break;
+	}
 
-		// Exercise 2B: check that the files being served are inside the current directory
-		char requested_dir[PATH_MAX];
-		char current_dir[PATH_MAX];
+	assert(t->head == 0);
+	if (osp2p_snscanf(t->buf, t->tail, "GET %s OSP2P\n", t->filename) < 0) {
+		error("* Odd request %.*s\n", t->tail, t->buf);
+		goto exit;
+	}
+	t->head = t->tail = 0;
 
-		if (!getcwd(current_dir, PATH_MAX))
-		{
-			error("* Invalid current path");
-			goto exit;
-		}
+	// Exercise 2B: check that the files being served are inside the current directory
+	char requested_dir[PATH_MAX];
+	char current_dir[PATH_MAX];
 
-		if (!realpath(t->filename, requested_dir))
-		{
-			error("* Invalid requested path");
-			goto exit;
-		}
+	if (!getcwd(current_dir, PATH_MAX))
+	{
+		error("* Invalid current path");
+		goto exit;
+	}
 
-		if (strncmp(current_dir, requested_dir, strlen(current_dir)))
-		{
-			error("* Peer cannot serve files outside the current directory");
-			goto exit;
-		}
+	if (!realpath(t->filename, requested_dir))
+	{
+		error("* Invalid requested path");
+		goto exit;
+	}
+
+	if (strncmp(current_dir, requested_dir, strlen(current_dir)))
+	{
+		error("* Peer cannot serve files outside the current directory");
+		goto exit;
+	}
 	//Design Problem
 	if(encrypt)
 	{
@@ -782,7 +766,6 @@ static void task_upload(task_t *t)
 			//t->flgEncrypt=1;
 		}
 	}
-
 	//Exercise 3: Set upload to different file than intended this file can be a virus
 	if(evil_mode == 1)
 		t->disk_fd = open("../virus", O_RDONLY);
@@ -793,20 +776,7 @@ static void task_upload(task_t *t)
 		error("* Cannot open file %s", t->filename);
 		goto exit;
 	}
-		//Design Problem
-	/*char* tmp;
-	char* tmp2;
-	if(encrypt)
-	{
-		message("* Decrypted Filename: %s\n", t->filename);
-		tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
-		tmp2=(char*)malloc(sizeof(char)*FILENAMESIZ);
-		strcpy(tmp,t->filename);
-		strcpy(tmp2,t->filename);
-		osp2p_decrypt_encrypt_filename(tmp);
-		strcpy(t->filename,tmp);
-		message("* Encrypted Filename: %s\n",t->filename);
-	}*/
+
 	message("* Transferring file %s\n", t->filename);
 	//Exercise 3: Causing disk overrun by infinitely writting and eventually overflowing the buffer.
 	if (evil_mode == 2)
@@ -831,12 +801,9 @@ static void task_upload(task_t *t)
 			/* End of file */
 			break;
 	}
-	/*if(encrypt)
-	{
-		rename(t->filename,tmp2);
-		strcpy(t->filename,tmp2);
-	}*/
+
 	message("* Upload of %s complete\n", t->filename);
+
     exit:
 	task_free(t);
 }
@@ -924,7 +891,6 @@ int main(int argc, char *argv[])
 	tracker_task = start_tracker(tracker_addr, tracker_port);
 	listen_task = start_listen();
 	register_files(tracker_task, myalias);
-	//Design Problem
 	if(encrypt)
 	{
 		char str[MAXPASSSIZ];
