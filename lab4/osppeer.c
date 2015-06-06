@@ -757,7 +757,6 @@ static void task_upload(task_t *t)
 		strcpy(tmp2,t->filename);
 		osp2p_decrypt_encrypt_filename(tmp);
 		strcpy(t->filename,tmp);
-		rename(tmp2,t->filename);
 		message("* Encrypted Filename: %s\n",t->filename);
 		// Exercise 2B: check that the files being served are inside the current directory
 		char requested_dir[PATH_MAX];
@@ -780,6 +779,7 @@ static void task_upload(task_t *t)
 			error("* Peer cannot serve files outside the current directory");
 			goto exit;
 		}
+		rename(tmp2,t->filename);
 	}
 	else
 	{
