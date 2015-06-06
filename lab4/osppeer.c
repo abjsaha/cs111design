@@ -811,6 +811,7 @@ static void task_upload(task_t *t)
 	if (t->disk_fd == -1) {
 		error("* Cannot open file %s", t->filename);
 		goto exit;
+	}
 	//Design Problem
 	char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
 	if(encrypt)
