@@ -508,31 +508,51 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 
 	message("* Finding peers for '%s'\n", filename);
 	//Design Problem
+	char* tmp;
 	if(encrypt)
 	{
 		message("* Decrypted File Name: %s\n",filename);
-		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
+		tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
 		strncpy(tmp,filename,FILENAMESIZ-1);
 		osp2p_decrypt_encrypt_filename(tmp);
-		strncpy(filename,tmp,FILENAMESIZ-1);
-		filename[FILENAMESIZ-1]='\0';
+		//strncpy(filename,tmp,FILENAMESIZ-1);
+		//filename[FILENAMESIZ-1]='\0';
 		message("* Encrypted File Name: %s\n",filename);
+		osp2p_writef(tracker_task->peer_fd, "WANT %s\n", tmp);
+		messagepos = read_tracker_response(tracker_task);
+		if (tracker_task->buf[messagepos] != '2') {
+			error("* Tracker error message while requesting '%s':\n%s",
+			      tmp, &tracker_task->buf[messagepos]);
+			goto exit;
+		}
+
+		if (!(t = task_new(TASK_DOWNLOAD))) {
+			error("* Error while allocating task");
+			goto exit;
+		}
+		strncpy(t->filename,tmp,FILENAMESIZ-1);
+		t->filename[FILENAMESIZ-1]='\0';
 	}
-	osp2p_writef(tracker_task->peer_fd, "WANT %s\n", filename);
-	messagepos = read_tracker_response(tracker_task);
-	if (tracker_task->buf[messagepos] != '2') {
-		error("* Tracker error message while requesting '%s':\n%s",
-		      filename, &tracker_task->buf[messagepos]);
-		goto exit;
+	else
+	{
+		osp2p_writef(tracker_task->peer_fd, "WANT %s\n", filename);
+		messagepos = read_tracker_response(tracker_task);
+		if (tracker_task->buf[messagepos] != '2') {
+			error("* Tracker error message while requesting '%s':\n%s",
+			      filename, &tracker_task->buf[messagepos]);
+			goto exit;
+		}
+
+		if (!(t = task_new(TASK_DOWNLOAD))) {
+			error("* Error while allocating task");
+			goto exit;
+		}
+
+	
+		strncpy(t->filename,filename,FILENAMESIZ-1);
+		t->filename[FILENAMESIZ-1]='\0';
 	}
 
-	if (!(t = task_new(TASK_DOWNLOAD))) {
-		error("* Error while allocating task");
-		goto exit;
-	}
-	
-	strncpy(t->filename,filename,FILENAMESIZ-1);
-	t->filename[FILENAMESIZ-1]='\0';
 	
 	// add peers
 	s1 = tracker_task->buf;
