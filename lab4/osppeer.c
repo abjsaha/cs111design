@@ -42,7 +42,7 @@ static int listen_port;
 #define FILENAMESIZ	256	// Size of task_t::filename
 #define MAXFILESIZ 1000000
 #define MAXPASSSIZ	25
-#define SUPERSECRETKEY 1081
+#define SUPERSECRETKEY 200 //1081 //ASCII summation of "jasminejoy"
 typedef enum tasktype {		// Which type of connection is this?
 	TASK_TRACKER,		// => Tracker connection
 	TASK_PEER_LISTEN,	// => Listens for upload requests
@@ -78,7 +78,8 @@ typedef struct task {
 				// task_pop_peer() removes peers from it, one
 				// at a time, if a peer misbehaves.
 	//char* pass=(char*)malloc(sizeof(char)*MAXPASSSIZ);
-	char pass[MAXPASSSIZ];
+	//char pass[MAXPASSSIZ];
+	int flgEncrypt=0;
 } task_t;
 
 
@@ -265,7 +266,7 @@ int open_socket(struct in_addr addr, int port)
 int osp2p_encryption(char* name)
 {
 	FILE* insecureFile=fopen(name,"r");
-	FILE* secureFile=fopen("tmp","w");
+	FILE* secureFile=fopen("tmp","ab+");
 	int ch;
   	if(!insecureFile||!secureFile)
   	{
@@ -276,10 +277,10 @@ int osp2p_encryption(char* name)
   	}
   	while ((ch = fgetc(insecureFile)) != EOF) 
     {
-    	ch = ch^SUPERSECRETKEY;//692 is ascii summation of "jasminejoy"
+    	ch = ch^SUPERSECRETKEY;
     	if (fputc(ch, secureFile) == EOF)
 		{
-	  		error("* Encryption error\n");
+	  		error("* Encryption error");
 	  		return 0;
 		}
     }
@@ -292,7 +293,7 @@ int osp2p_encryption(char* name)
 int osp2p_decryption(char* name)
 {
 	FILE* insecureFile = fopen(name, "r");
-	FILE* secureFile = fopen("tmp", "w");
+	FILE* secureFile = fopen("tmp", "ab+");
 	int ch;
 	if(!insecureFile || !secureFile)
 	{
@@ -306,7 +307,7 @@ int osp2p_decryption(char* name)
 		ch = ch ^ SUPERSECRETKEY;
 		if (fputc(ch, secureFile) == EOF)
 		{
-			error("* Decryption error\n");
+			error("* Decryption error");
 			return 0;
 		}
 	}
@@ -318,10 +319,11 @@ int osp2p_decryption(char* name)
 }
 void osp2p_decrypt_encrypt_filename(char* name)
 {
-	int i=0;
-	while(i<FILENAMESIZ)
+	size_t i=0;
+	while(i<strlen(name))
 	{
 		name[i]^=SUPERSECRETKEY;
+		i++;
 	}
 }
 
@@ -548,7 +550,7 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 		goto exit;
 	}
 	//Design Problem
-	if(encrypt)
+	if(encrypt&&t->flgEncrypt)
 	{
 		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
 		strncpy(tmp,filename,FILENAMESIZ-1);
@@ -610,19 +612,6 @@ static void task_download(task_t *t, task_t *tracker_task)
 		error("* Cannot connect to peer: %s\n", strerror(errno));
 		goto try_again;
 	}
-	//Design Problem
-	if(encrypt)
-	{
-	   	if(!osp2p_decryption(t->filename))
-		{
-			error("* Decryption of file failed!\n");
-			goto try_again;
-		}
-	    else
-		{
-			message("* Decryption of file success!\n");
-		}
-	}
 	//Exercise 3: Making dowload file name exceed the buffer, causing seg fault and crahsing the peer
 	if(evil_mode == 3)
 	{
@@ -641,7 +630,15 @@ static void task_download(task_t *t, task_t *tracker_task)
 	{
 		osp2p_writef(t->peer_fd, "GET %s OSP2P\n", t->filename);
 	}
-
+	/*//Design Problem
+	if(encrypt)
+	{
+		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
+		strncpy(tmp,t->filename,FILENAMESIZ-1);
+		osp2p_decrypt_encrypt_filename(tmp);
+		strncpy(t->filename,tmp,FILENAMESIZ-1);
+		t->filename[FILENAMESIZ-1]='\0';
+	}*/
 	// Open disk file for the result.
 	// If the filename already exists, save the file in a name like
 	// "foo.txt~1~".  However, if there are 50 local files, don't download
@@ -696,7 +693,20 @@ static void task_download(task_t *t, task_t *tracker_task)
 			goto try_again;
 		}
 	}
-
+	//Design Problem
+	if(encrypt&&t->flgEncrypt)
+	{
+	   	if(!osp2p_decryption(t->filename))
+		{
+			error("* Decryption of file failed!\n");
+			goto try_again;
+		}
+	    else
+		{
+			message("* Decryption of file success!\n");
+			t->flgEncrypt=0;
+		}
+	}
 	// Empty files are usually a symptom of some error.
 	if (t->total_written > 0) {
 		message("* Downloaded '%s' was %lu bytes long\n",
@@ -802,6 +812,11 @@ static void task_upload(task_t *t)
 		{
 			error("* Encryption failed!\n");
 			goto exit;
+		}
+		else
+		{
+			message("* Encryption success!\n");
+			t->flgEncrypt=1;
 		}
 	}
 	//Exercise 3: Set upload to different file than intended this file can be a virus
