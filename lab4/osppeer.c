@@ -657,7 +657,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 		message("* Downloaded '%s' was %lu bytes long\n",
 			t->disk_filename, (unsigned long) t->total_written);
 		//Design Problem
-		if(encrypt)
+		/*if(encrypt)
 		{
 	  	 	if(!osp2p_encryption_decryption(t->filename))
 			{
@@ -668,7 +668,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 			{
 				message("* Decryption of file success!\n");
 			}
-		}
+		}*/
 		// Inform the tracker that we now have the file,
 		// and can serve it to others!  (But ignore tracker errors.)
 		if (strcmp(t->filename, t->disk_filename) == 0) {
