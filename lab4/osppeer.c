@@ -550,7 +550,7 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 	//Design Problem
 	if(encrypt)
 	{
-		char* tmp;
+		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
 		strncpy(tmp,filename,FILENAMESIZ-1);
 		osp2p_decrypt_encrypt_filename(tmp);
 		strncpy(t->filename,tmp,FILENAMESIZ-1);
@@ -818,7 +818,7 @@ static void task_upload(task_t *t)
 	if(encrypt)
 	{
 		message("* Transferring file %s\n", t->filename);
-		char* tmp;
+		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
 		strcpy(tmp,t->filename);
 		osp2p_decrypt_encrypt_filename(tmp);
 		strcpy(t->filename,tmp);
