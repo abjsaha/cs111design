@@ -301,6 +301,7 @@ void cleanup()
 {
 	DIR *dir;
 	struct dirent *ent;
+	struct stat s;
 	if ((dir = opendir(".")) == NULL)
 		die("open directory: %s", strerror(errno));
 	while ((ent = readdir(dir)) != NULL) {
