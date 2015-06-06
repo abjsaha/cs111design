@@ -455,7 +455,6 @@ static void register_files(task_t *tracker_task, const char *myalias)
 		die("open directory: %s", strerror(errno));
 	while ((ent = readdir(dir)) != NULL) {
 		int namelen = strlen(ent->d_name);
-		message("%s\n",ent->d_name);
 		// don't depend on unreliable parts of the dirent structure
 		// and only report regular files.  Do not change these lines.
 		if (stat(ent->d_name, &s) < 0 || !S_ISREG(s.st_mode)
@@ -464,7 +463,17 @@ static void register_files(task_t *tracker_task, const char *myalias)
 			    || ent->d_name[namelen - 1] == 'h'))
 		    || (namelen > 1 && ent->d_name[namelen - 1] == '~'))
 			continue;
-
+		//Design Problem
+		if(encrypt)
+		{
+			message("* Decrypted Filename: %s\n", ent->d_name);
+			char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
+			strcpy(tmp,ent->d_name);
+			osp2p_decrypt_encrypt_filename(ent->d_name);
+			//strcpy(t->filename,tmp);
+			message("* Encrypted Filename: %s\n",ent->d_name);
+			rename(tmp,ent->d_name);
+		}
 		osp2p_writef(tracker_task->peer_fd, "HAVE %s\n", ent->d_name);
 		messagepos = read_tracker_response(tracker_task);
 		if (tracker_task->buf[messagepos] != '2')
@@ -777,29 +786,6 @@ static void task_upload(task_t *t)
 			//t->flgEncrypt=1;
 		}
 	}
-	//Design Problem
-	if(encrypt)
-	{
-		message("* Decrypted Filename: %s\n", t->filename);
-		char* tmp=(char*)malloc(sizeof(char)*FILENAMESIZ);
-		strcpy(tmp,t->filename);
-		osp2p_decrypt_encrypt_filename(t->filename);
-		//strcpy(t->filename,tmp);
-		message("* Encrypted Filename: %s\n",t->filename);
-		rename(tmp,t->filename);
-		if(evil_mode == 1)
-			t->disk_fd = open("../virus", O_RDONLY);
-		else
-			t->disk_fd = open(t->filename, O_RDONLY);
-
-		if (t->disk_fd == -1) {
-			error("* Cannot open file %s", t->filename);
-			goto exit;
-		}
-		message("* Transferring file %s\n", t->filename);
-	}
-	else
-	{
 	//Exercise 3: Set upload to different file than intended this file can be a virus
 	if(evil_mode == 1)
 		t->disk_fd = open("../virus", O_RDONLY);
@@ -809,7 +795,6 @@ static void task_upload(task_t *t)
 	if (t->disk_fd == -1) {
 		error("* Cannot open file %s", t->filename);
 		goto exit;
-	}
 	/*//Design Problem
 	if(encrypt)
 	{
