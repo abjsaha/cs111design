@@ -42,7 +42,7 @@ static int listen_port;
 #define FILENAMESIZ	256	// Size of task_t::filename
 #define MAXFILESIZ 1000000
 #define MAXPASSSIZ	25
-#define SUPERSECRETKEY 1081 //ASCII summation of "jasminejoy"
+#define SUPERSECRETKEY 656 //ASCII summation of "jasjoy"
 typedef enum tasktype {		// Which type of connection is this?
 	TASK_TRACKER,		// => Tracker connection
 	TASK_PEER_LISTEN,	// => Listens for upload requests
