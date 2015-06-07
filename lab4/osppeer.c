@@ -42,7 +42,7 @@ static int listen_port;
 #define FILENAMESIZ	256	// Size of task_t::filename
 #define MAXFILESIZ 1000000
 #define MAXPASSSIZ	25
-#define SUPERSECRETKEY 200 //1081 //ASCII summation of "jasminejoy"
+#define SUPERSECRETKEY 1081 //ASCII summation of "jasminejoy"
 typedef enum tasktype {		// Which type of connection is this?
 	TASK_TRACKER,		// => Tracker connection
 	TASK_PEER_LISTEN,	// => Listens for upload requests
@@ -77,9 +77,6 @@ typedef struct task {
 				// function initializes this list;
 				// task_pop_peer() removes peers from it, one
 				// at a time, if a peer misbehaves.
-	//char* pass=(char*)malloc(sizeof(char)*MAXPASSSIZ);
-	//char pass[MAXPASSSIZ];
-	//int flgEncrypt;
 } task_t;
 
 
@@ -93,7 +90,6 @@ static task_t *task_new(tasktype_t type)
 		errno = ENOMEM;
 		return NULL;
 	}
-	//t->flgEncrypt=0;
 	t->type = type;
 	t->peer_fd = t->disk_fd = -1;
 	t->head = t->tail = 0;
